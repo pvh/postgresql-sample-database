@@ -1,41 +1,37 @@
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
-CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
-CREATE TABLE agent_statuses (
-    agent_uuid uuid,
-    state text,
-    "time" timestamp with time zone
-);
-CREATE TABLE agents (
-    uuid uuid DEFAULT uuid_generate_v4(),
+create domain currency as numeric(10, 2);
+create extension if not exists plpgsql with schema pg_catalog;
+create extension if not exists dblink with schema public;
+create extension if not exists hstore with schema public;
+create extension if not exists "uuid-ossp" with schema public;
+create table agents (
+    uuid uuid default uuid_generate_v4(),
     name text,
-    birthday date,
+    birth date,
     affiliation text,
     tags text[]
 );
-CREATE TABLE countries (
+create table countries (
     name text
 );
-CREATE TABLE expenses (
+create table expenses (
     agent_uuid uuid,
-    date date,
-    price numeric,
+    incurred date,
+    price currency,
     name text
 );
-CREATE TABLE expensive_items (
+create table expensive_items (
     item text
 );
-CREATE TABLE gear_names (
+create table gear_names (
     name text
 );
-CREATE TABLE reports (
+create table reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
     attrs hstore default '{}'
 );
 
-COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
+copy agents (uuid, name, birth, affiliation, tags) from stdin;
 95d0d92e-414a-4654-a010-4c2c9eecb716	Cyril Figgis	1972-05-14	ISIS	{}
 c79d954d-0780-45e9-b533-b845398d5e20	Lana Kane	1981-06-27	ISIS	{}
 28ec01ab-ab5e-4901-93b7-0fca7a320965	Pam Poovey	1980-11-07	ISIS	{}
@@ -49,14 +45,7 @@ e151b10e-faf3-41bf-8b11-8ea06f82d6dd	Ray Gillette	1978-08-02	ISIS	{}
 5049ee7f-b016-4e0a-aed8-2b8566b7045a	Barry Dylan	1980-04-22	ODIN	{double-agent,probation,arrears}
 \.
 
-CREATE TABLE agent_statuses AS 
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
-    now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
-
-COPY countries (name) FROM stdin;
+copy countries (name) from stdin;
 Switzerland
 France
 England
@@ -75,7 +64,7 @@ Tokyo
 Delhi
 \.
 
-COPY expensive_items (item) FROM stdin;
+copy expensive_items (item) from stdin;
 dark black turtleneck
 slightly darker black turtleneck
 crisis vest
@@ -92,22 +81,22 @@ sunglasses
 plane tickets
 night-vision goggles
 grappling hook
-AK-47
-Walther PPK
+ak-47
+walther ppk
 ammunition
 grenades
 sleeping gas
 silver platter
 \.
 
-CREATE TABLE agent_statuses AS 
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
+create table agent_statuses as
+  (select
+    (select uuid from agents order by random()+g*0 limit 1) as agent_uuid,
+    (array['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
     now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
+  from generate_series(1, 1000) as g);
 
-COPY gear_names (name) FROM stdin;
+copy gear_names (name) from stdin;
 cloning machine
 spy car
 body armor
@@ -116,7 +105,4 @@ reentry capsule
 laser watch
 \.
 
-CREATE
-
-CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
-
+create index reports_attrs_idx on reports using gin (attrs);
