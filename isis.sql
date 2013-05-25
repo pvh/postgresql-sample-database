@@ -124,7 +124,31 @@ reentry capsule
 laser watch
 \.
 
-CREATE
 
 CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
+
+CREATE TABLE points AS (
+  WITH clusters AS (
+    SELECT 
+      random() * 1000 AS x,
+      random() * 1000 AS y, 
+      (random() * 5000)::int + 100 AS count, 
+      random() * 100 + 10 AS sigma 
+    FROM 
+      generate_series(1,100)
+  ) 
+  SELECT 
+    x + sin(a) * b AS x, 
+    y + cos(a) * b AS y 
+  FROM 
+  (
+    SELECT 
+      generate_series(1, c.count) AS index, 
+      c.x, 
+      c.y, 
+      2 * pi() * random() as a, 
+      c.sigma * sqrt(-2 * ln(random())) as b 
+    FROM clusters c
+  ) t
+);
 

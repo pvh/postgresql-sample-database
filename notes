@@ -23,22 +23,21 @@ json
 pgcrypto
 pl/ *
 exclusion constraints
-advisory locks
 trigrams / regex indexes
-
+time data with timezones
+fdws!
+uuids
 
 example queries
 --
+advisory locks
 lateral
 with
-time data with timezones
 dblink
-fdws!
 generate_series
 enum
 composite types
 fancy times and dates
-uuids
 updatable views
 window functions
 pg_stat_*stuff*
