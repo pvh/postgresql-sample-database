@@ -2,11 +2,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
-CREATE TABLE agent_statuses (
-    agent_uuid uuid,
-    state text,
-    "time" timestamp with time zone
-);
+
 CREATE TABLE agents (
     uuid uuid DEFAULT uuid_generate_v4(),
     name text,
@@ -28,11 +24,6 @@ CREATE TABLE expensive_items (
 );
 CREATE TABLE gear_names (
     name text
-);
-CREATE TABLE reports (
-    agent_uuid uuid,
-    "time" timestamp with time zone,
-    attrs hstore default '{}'
 );
 
 COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
@@ -74,6 +65,23 @@ Australia
 Tokyo
 Delhi
 \.
+
+CREATE TABLE mission_reports AS
+  (SELECT
+    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
+    now() - '1 year ago'::interval * random() as time,
+    '{}'::hstore as attrs
+  FROM generate_series(1, 1000) as g);
+
+-- we need to correlate the sub-select with the outer query or postgres will only evaluate it once
+UPDATE reports SET attrs = 
+  attrs || ('location' => (select * from countries order by random(), reports limit 1)) ;
+
+UPDATE mission_reports SET attrs =
+    attrs || 'witnessed' => (round(random())::boolean) ;
+
+UPDATE mission_reports SET attrs =
+    attrs || 'injury' => (['mild', 'moderate', 'severe', 'lethal'][(random() * 4) + 1];
 
 COPY expensive_items (item) FROM stdin;
 dark black turtleneck
