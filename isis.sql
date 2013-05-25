@@ -2,20 +2,22 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
+
 CREATE TABLE agent_statuses (
     agent_uuid uuid,
     state text,
     "time" timestamp with time zone
 );
 CREATE TABLE agents (
-    uuid uuid DEFAULT uuid_generate_v4(),
+    uuid uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
     name text,
     birthday date,
     affiliation text,
     tags text[]
 );
 CREATE TABLE countries (
-    name text
+    name text PRIMARY KEY
 );
 CREATE TABLE expenses (
     agent_uuid uuid,
@@ -23,6 +25,15 @@ CREATE TABLE expenses (
     price numeric,
     name text
 );
+
+CREATE TABLE secret_missions (
+    operation_name text PRIMARY KEY,
+    agent_uuid uuid,
+    location text,
+    mission_timeline tstzrange
+);
+
+
 CREATE TABLE expensive_items (
     item text
 );
@@ -32,7 +43,7 @@ CREATE TABLE gear_names (
 CREATE TABLE reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
-    attrs hstore default '{}'
+    attrs hstore default ''
 );
 
 COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
@@ -49,7 +60,7 @@ e151b10e-faf3-41bf-8b11-8ea06f82d6dd	Ray Gillette	1978-08-02	ISIS	{}
 5049ee7f-b016-4e0a-aed8-2b8566b7045a	Barry Dylan	1980-04-22	ODIN	{double-agent,probation,arrears}
 \.
 
-CREATE TABLE agent_statuses AS 
+INSERT INTO agent_statuses
   (SELECT
     (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
     (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
@@ -100,13 +111,6 @@ sleeping gas
 silver platter
 \.
 
-CREATE TABLE agent_statuses AS 
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
-    now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
-
 COPY gear_names (name) FROM stdin;
 cloning machine
 spy car
@@ -116,7 +120,20 @@ reentry capsule
 laser watch
 \.
 
-CREATE
+ALTER TABLE secret_missions
+    ADD CONSTRAINT fk_secret_mission_agent
+    FOREIGN KEY (agent_uuid) REFERENCES agents(uuid);
+    
+ALTER TABLE secret_missions
+    ADD CONSTRAINT fk_secret_mission_location
+    FOREIGN KEY (location) REFERENCES countries(name);
+    
+ALTER TABLE secret_missions
+    ADD CONSTRAINT cnt_solo_agent
+    EXCLUDE USING gist (location WITH =, mission_timeline WITH &&);
+    
+COMMENT ON CONSTRAINT cnt_solo_agent ON secret_missions
+    IS 'Only one agent must be allowed to operate in any one country at any one time.';
 
 CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
 
