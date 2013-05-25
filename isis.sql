@@ -32,14 +32,8 @@ CREATE TABLE gear_names (
 CREATE TABLE reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
-    attrs hstore
+    attrs hstore default '{}'
 );
-
-
-
---
--- Data for Name: agents; Type: TABLE DATA; Schema: public; Owner: zhhhzopchfedfd
---
 
 COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
 95d0d92e-414a-4654-a010-4c2c9eecb716	Cyril Figgis	1972-05-14	ISIS	{}
@@ -55,9 +49,12 @@ e151b10e-faf3-41bf-8b11-8ea06f82d6dd	Ray Gillette	1978-08-02	ISIS	{}
 5049ee7f-b016-4e0a-aed8-2b8566b7045a	Barry Dylan	1980-04-22	ODIN	{double-agent,probation,arrears}
 \.
 
---
--- Data for Name: countries; Type: TABLE DATA; Schema: public; Owner: zhhhzopchfedfd
---
+CREATE TABLE agent_statuses AS 
+  (SELECT
+    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
+    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
+    now() - '1 year ago'::interval * random() as time
+  FROM generate_series(1, 1000) as g);
 
 COPY countries (name) FROM stdin;
 Switzerland
@@ -77,12 +74,6 @@ Australia
 Tokyo
 Delhi
 \.
-
-
-
---
--- Data for Name: expensive_items; Type: TABLE DATA; Schema: public; Owner: zhhhzopchfedfd
---
 
 COPY expensive_items (item) FROM stdin;
 dark black turtleneck
@@ -109,10 +100,12 @@ sleeping gas
 silver platter
 \.
 
-
---
--- Data for Name: gear_names; Type: TABLE DATA; Schema: public; Owner: zhhhzopchfedfd
---
+CREATE TABLE agent_statuses AS 
+  (SELECT
+    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
+    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
+    now() - '1 year ago'::interval * random() as time
+  FROM generate_series(1, 1000) as g);
 
 COPY gear_names (name) FROM stdin;
 cloning machine
@@ -122,6 +115,8 @@ bionic arm
 reentry capsule
 laser watch
 \.
+
+CREATE
 
 CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
 
