@@ -1,0 +1,69 @@
+CREATE TABLE empty(text, text);
+
+update agents set tags = tags || ARRAY['foo'] where random() < 0.3;
+
+demo database features
+--
+json
+fts
+range types
+triggers
+foreign keys
+views
+roles
+spatial data
+functional indexes
+arrays
+constraint partitions
+listen/notify
+regular expressions
+collations
+hstore
+json
+pgcrypto
+pl/ *
+exclusion constraints
+advisory locks
+trigrams / regex indexes
+
+
+example queries
+--
+lateral
+with
+time data with timezones
+dblink
+fdws!
+generate_series
+enum
+composite types
+fancy times and dates
+uuids
+updatable views
+window functions
+pg_stat_*stuff*
+CASE WHEN pivots vs tablefunc
+coalesce
+
+GIN/GIST
+knn
+create index concurrently
+
+pg_graph extension / histogram - sparkline - 2d mandelbrot plot
+
+pg_anonymizer - library of useful functions for anonymizing data
+
+
+
+we need a better explain tutorial for the manual
+
+
+conference database
+--- 
+- where are people from
+- conference room bookings for range types
+- bonus: we have data!
+
+seed is client settable
+
+

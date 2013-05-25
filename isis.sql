@@ -1,92 +1,12 @@
---
--- PostgreSQL database dump
---
-
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
---
-
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
---
--- Name: dblink; Type: EXTENSION; Schema: -; Owner: 
---
-
 CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
-
-
---
--- Name: EXTENSION dblink; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION dblink IS 'connect to other PostgreSQL databases from within a database';
-
-
---
--- Name: hstore; Type: EXTENSION; Schema: -; Owner: 
---
-
 CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
-
-
---
--- Name: EXTENSION hstore; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs';
-
-
---
--- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: 
---
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
-
-
---
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
-
-
-SET search_path = public, pg_catalog;
-
-SET default_tablespace = '';
-
-SET default_with_oids = false;
-
---
--- Name: agent_statuses; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE agent_statuses (
     agent_uuid uuid,
     state text,
     "time" timestamp with time zone
 );
-
-
-ALTER TABLE public.agent_statuses OWNER TO zhhhzopchfedfd;
-
---
--- Name: agents; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE agents (
     uuid uuid DEFAULT uuid_generate_v4(),
     name text,
@@ -94,74 +14,26 @@ CREATE TABLE agents (
     affiliation text,
     tags text[]
 );
-
-
-ALTER TABLE public.agents OWNER TO zhhhzopchfedfd;
-
---
--- Name: countries; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE countries (
     name text
 );
-
-
-ALTER TABLE public.countries OWNER TO zhhhzopchfedfd;
-
---
--- Name: expenses; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE expenses (
     agent_uuid uuid,
     date date,
     price numeric,
     name text
 );
-
-
-ALTER TABLE public.expenses OWNER TO zhhhzopchfedfd;
-
---
--- Name: expensive_items; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE expensive_items (
     item text
 );
-
-
-ALTER TABLE public.expensive_items OWNER TO zhhhzopchfedfd;
-
---
--- Name: gear_names; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE gear_names (
     name text
 );
-
-
-ALTER TABLE public.gear_names OWNER TO zhhhzopchfedfd;
-
---
--- Name: reports; Type: TABLE; Schema: public; Owner: zhhhzopchfedfd; Tablespace: 
---
-
 CREATE TABLE reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
     attrs hstore
 );
-
-
-ALTER TABLE public.reports OWNER TO zhhhzopchfedfd;
-
---
--- Data for Name: agent_statuses; Type: TABLE DATA; Schema: public; Owner: zhhhzopchfedfd
---
-
 COPY agent_statuses (agent_uuid, state, "time") FROM stdin;
 8aefec35-1088-48ff-b075-b2330eebf630	assigned	2013-05-25 02:49:18.828137+00
 e151b10e-faf3-41bf-8b11-8ea06f82d6dd	assigned	2013-11-15 10:38:37.970537+00
