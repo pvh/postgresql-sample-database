@@ -4,27 +4,43 @@ CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 CREATE TABLE agents (
-    uuid uuid DEFAULT uuid_generate_v4(),
+    uuid uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
     name text,
     birthday date,
     affiliation text,
     tags text[]
 );
+
 CREATE TABLE countries (
     name text
 );
+
 CREATE TABLE expenses (
     agent_uuid uuid,
     date date,
     price numeric,
     name text
 );
+
 CREATE TABLE expensive_items (
     item text
 );
+
 CREATE TABLE gear_names (
     name text
 );
+
+CREATE TABLE reports (
+    agent_uuid uuid,
+    "time" timestamp with time zone,
+    attrs hstore default NULL,
+    report text,
+    report_tsv tsvector
+);
+
+CREATE TRIGGER report_tsv_update BEFORE INSERT OR UPDATE ON reports
+FOR EACH ROW EXECUTE PROCEDURE
+  tsvector_update_trigger(report_tsv, 'pg_catalog.english', report);
 
 COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
 95d0d92e-414a-4654-a010-4c2c9eecb716	Cyril Figgis	1972-05-14	ISIS	{}
@@ -39,13 +55,6 @@ e151b10e-faf3-41bf-8b11-8ea06f82d6dd	Ray Gillette	1978-08-02	ISIS	{}
 6ab41fe3-0f58-40c1-8e42-5a74e4265a21	Sterling Archer	1976-04-11	ISIS	{double-agent,probation,arrears}
 5049ee7f-b016-4e0a-aed8-2b8566b7045a	Barry Dylan	1980-04-22	ODIN	{double-agent,probation,arrears}
 \.
-
-CREATE TABLE agent_statuses AS 
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
-    now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
 
 COPY countries (name) FROM stdin;
 Switzerland
@@ -66,22 +75,32 @@ Tokyo
 Delhi
 \.
 
-CREATE TABLE mission_reports AS
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    now() - '1 year ago'::interval * random() as time,
-    '{}'::hstore as attrs
-  FROM generate_series(1, 1000) as g);
+CREATE TEMPORARY TABLE temp_report_texts (
+    id SERIAL,
+    report TEXT
+);
+COPY temp_report_texts (report) FROM stdin;
+Agent infiltrated the mansion and spiked the opposition leader''s footwear with the specified hallucinogenic substance. No security mechanisms were encountered.
+Echelon was compromised without detection and the desired results for conversations matching the search terms "nuclear", "3d printer", "matinee idol", and "infidelity" were recovered.\n\nAwaiting further instructions in the field.
+\.
+
+INSERT INTO reports (agent_uuid, "time", report)
+    (SELECT
+        (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
+        now() - '1 year ago'::interval * random() as time,
+        (SELECT report FROM temp_report_texts ORDER BY random()+g*0 LIMIT 1) as report
+        '{}'::hstore as attrs
+    FROM generate_series(1,100) as g);
 
 -- we need to correlate the sub-select with the outer query or postgres will only evaluate it once
 UPDATE reports SET attrs = 
   attrs || ('location' => (select * from countries order by random(), reports limit 1)) ;
 
 UPDATE mission_reports SET attrs =
-    attrs || 'witnessed' => (round(random())::boolean) ;
+    attrs || 'witnessed' => (round(random())::int::boolean) ;
 
 UPDATE mission_reports SET attrs =
-    attrs || 'injury' => (['mild', 'moderate', 'severe', 'lethal'][(random() * 4) + 1];
+    attrs || 'injury' => (ARRAY['mild', 'moderate', 'severe', 'lethal'])[random() * 4 + 1];
 
 COPY expensive_items (item) FROM stdin;
 dark black turtleneck
@@ -108,7 +127,7 @@ sleeping gas
 silver platter
 \.
 
-CREATE TABLE agent_statuses AS 
+INSERT INTO agent_statuses(agent_uuid, state, time)
   (SELECT
     (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
     (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
@@ -124,8 +143,6 @@ reentry capsule
 laser watch
 \.
 
-
-CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
 
 CREATE TABLE points AS (
   WITH clusters AS (
@@ -152,3 +169,5 @@ CREATE TABLE points AS (
   ) t
 );
 
+CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
+CREATE INDEX reports_report_idx ON reports USING gin (report_tsv);
