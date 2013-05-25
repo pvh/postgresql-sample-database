@@ -116,7 +116,5 @@ reentry capsule
 laser watch
 \.
 
-CREATE
-
 CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
 
