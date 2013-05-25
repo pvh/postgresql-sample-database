@@ -8,7 +8,7 @@ CREATE TABLE agent_statuses (
     "time" timestamp with time zone
 );
 CREATE TABLE agents (
-    uuid uuid DEFAULT uuid_generate_v4(),
+    uuid uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
     name text,
     birthday date,
     affiliation text,
@@ -32,8 +32,13 @@ CREATE TABLE gear_names (
 CREATE TABLE reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
-    attrs hstore default '{}'
+    attrs hstore default NULL,
+    report text,
+    report_tsv tsvector
 );
+CREATE TRIGGER report_tsv_update BEFORE INSERT OR UPDATE ON reports
+FOR EACH ROW EXECUTE PROCEDURE
+tsvector_update_trigger(report_tsv, 'pg_catalog.english', report);
 
 COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
 95d0d92e-414a-4654-a010-4c2c9eecb716	Cyril Figgis	1972-05-14	ISIS	{}
@@ -48,13 +53,6 @@ e151b10e-faf3-41bf-8b11-8ea06f82d6dd	Ray Gillette	1978-08-02	ISIS	{}
 6ab41fe3-0f58-40c1-8e42-5a74e4265a21	Sterling Archer	1976-04-11	ISIS	{double-agent,probation,arrears}
 5049ee7f-b016-4e0a-aed8-2b8566b7045a	Barry Dylan	1980-04-22	ODIN	{double-agent,probation,arrears}
 \.
-
-CREATE TABLE agent_statuses AS 
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
-    now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
 
 COPY countries (name) FROM stdin;
 Switzerland
@@ -100,7 +98,7 @@ sleeping gas
 silver platter
 \.
 
-CREATE TABLE agent_statuses AS 
+INSERT INTO agent_statuses(agent_uuid, state, time)
   (SELECT
     (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
     (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
@@ -116,7 +114,21 @@ reentry capsule
 laser watch
 \.
 
-CREATE
+CREATE TEMPORARY TABLE temp_report_texts (
+    id SERIAL,
+    report TEXT
+);
+COPY temp_report_texts (report) FROM stdin;
+Agent infiltrated the mansion and spiked the opposition leader''s footwear with the specified hallucinogenic substance. No security mechanisms were encountered.
+Echelon was compromised without detection and the desired results for conversations matching the search terms "nuclear", "3d printer", "matinee idol", and "infidelity" were recovered.\n\nAwaiting further instructions in the field.
+\.
+
+INSERT INTO reports (agent_uuid, "time", report)
+    (SELECT
+        (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
+        now() - '1 year ago'::interval * random() as time,
+        (SELECT report FROM temp_report_texts ORDER BY random()+g*0 LIMIT 1) as report
+    FROM generate_series(1,100) as g);
 
 CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
-
+CREATE INDEX reports_report_idx ON reports USING gin (report_tsv);
