@@ -48,9 +48,9 @@ create table gear_names (
 create table reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
+    attrs hstore default '',
     report text,
     report_tsv tsvector
-    attrs hstore default ''
 );
 
 create trigger report_tsv_update before insert or update on reports
@@ -106,23 +106,24 @@ Agent infiltrated the mansion and spiked the opposition leader''s footwear with 
 Echelon was compromised without detection and the desired results for conversations matching the search terms "nuclear", "3d printer", "matinee idol", and "infidelity" were recovered.\n\nAwaiting further instructions in the field.
 \.
 
-insert into reports (agent_uuid, "time", report)
+insert into reports (agent_uuid, "time", report, attrs)
     (select
         (select uuid from agents order by random()+g*0 limit 1) as agent_uuid,
         now() - '1 year ago'::interval * random() as time,
-        (select report from temp_report_texts order by random()+g*0 limit 1) as report
-        '{}'::hstore as attrs
+        (select report from temp_report_texts order by random()+g*0 limit 1) as report,
+        ''::hstore as attrs
     from generate_series(1,100) as g);
+
+
+update reports set attrs =
+    attrs || hstore('witnessed', (round(random())::int::boolean::text));
+
+update reports set attrs =
+    attrs || hstore('injury', (array['mild', 'moderate', 'severe', 'lethal'])[random() * 4 + 1]);
 
 -- we need to correlate the sub-select with the outer query or postgres will only evaluate it once
 update reports set attrs = 
-  attrs || ('location' => (select * from countries order by random(), reports limit 1)) ;
-
-update mission_reports set attrs =
-    attrs || 'witnessed' => (round(random())::int::boolean) ;
-
-update mission_reports set attrs =
-    attrs || 'injury' => (array['mild', 'moderate', 'severe', 'lethal'])[random() * 4 + 1];
+    attrs || hstore('location', (select * from countries order by random(), reports limit 1));
 
 copy expensive_items (item) from stdin;
 dark black turtleneck
