@@ -1,50 +1,51 @@
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
-CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
-CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
+create extension if not exists plpgsql with schema pg_catalog;
+create extension if not exists dblink with schema public;
+create extension if not exists hstore with schema public;
+create extension if not exists "uuid-ossp" with schema public;
+create extension if not exists btree_gist with schema public;
 
-CREATE TABLE agent_statuses (
+create table agent_statuses (
     agent_uuid uuid,
     state text,
     "time" timestamp with time zone
 );
 
-CREATE TABLE agents (
-    uuid uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+create domain currency as numeric(10, 2);
+create table agents (
+    uuid uuid default uuid_generate_v4() primary key,
     name text,
-    birthday date,
+    birth date,
     affiliation text,
     tags text[]
 );
 
-CREATE TABLE countries (
-    name text PRIMARY KEY
+create table countries (
+    name text primary key
 );
 
-CREATE TABLE expenses (
+create table expenses (
     agent_uuid uuid,
-    date date,
-    price numeric,
+    incurred date,
+    price currency,
     name text
 );
 
-CREATE TABLE secret_missions (
-    operation_name text PRIMARY KEY,
+create table secret_missions (
+    operation_name text primary key,
     agent_uuid uuid,
     location text,
     mission_timeline tstzrange
 );
 
-CREATE TABLE expensive_items (
+create table expensive_items (
     item text
 );
 
-CREATE TABLE gear_names (
+create table gear_names (
     name text
 );
 
-CREATE TABLE reports (
+create table reports (
     agent_uuid uuid,
     "time" timestamp with time zone,
     report text,
@@ -52,11 +53,11 @@ CREATE TABLE reports (
     attrs hstore default ''
 );
 
-CREATE TRIGGER report_tsv_update BEFORE INSERT OR UPDATE ON reports
-FOR EACH ROW EXECUTE PROCEDURE
+create trigger report_tsv_update before insert or update on reports
+for each row execute procedure
   tsvector_update_trigger(report_tsv, 'pg_catalog.english', report);
 
-COPY agents (uuid, name, birthday, affiliation, tags) FROM stdin;
+copy agents (uuid, name, birth, affiliation, tags) from stdin;
 95d0d92e-414a-4654-a010-4c2c9eecb716	Cyril Figgis	1972-05-14	ISIS	{}
 c79d954d-0780-45e9-b533-b845398d5e20	Lana Kane	1981-06-27	ISIS	{}
 28ec01ab-ab5e-4901-93b7-0fca7a320965	Pam Poovey	1980-11-07	ISIS	{}
@@ -70,14 +71,14 @@ e151b10e-faf3-41bf-8b11-8ea06f82d6dd	Ray Gillette	1978-08-02	ISIS	{}
 5049ee7f-b016-4e0a-aed8-2b8566b7045a	Barry Dylan	1980-04-22	ODIN	{double-agent,probation,arrears}
 \.
 
-INSERT INTO agent_statuses
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
+insert into agent_statuses
+  (select
+    (select uuid from agents order by random()+g*0 limit 1) as agent_uuid,
+    (array['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
     now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
+  from generate_series(1, 1000) as g);
 
-COPY countries (name) FROM stdin;
+copy countries (name) from stdin;
 Switzerland
 France
 England
@@ -96,34 +97,34 @@ Tokyo
 Delhi
 \.
 
-CREATE TEMPORARY TABLE temp_report_texts (
-    id SERIAL,
-    report TEXT
+create temporary table temp_report_texts (
+    id serial,
+    report text
 );
-COPY temp_report_texts (report) FROM stdin;
+copy temp_report_texts (report) from stdin;
 Agent infiltrated the mansion and spiked the opposition leader''s footwear with the specified hallucinogenic substance. No security mechanisms were encountered.
 Echelon was compromised without detection and the desired results for conversations matching the search terms "nuclear", "3d printer", "matinee idol", and "infidelity" were recovered.\n\nAwaiting further instructions in the field.
 \.
 
-INSERT INTO reports (agent_uuid, "time", report)
-    (SELECT
-        (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
+insert into reports (agent_uuid, "time", report)
+    (select
+        (select uuid from agents order by random()+g*0 limit 1) as agent_uuid,
         now() - '1 year ago'::interval * random() as time,
-        (SELECT report FROM temp_report_texts ORDER BY random()+g*0 LIMIT 1) as report
+        (select report from temp_report_texts order by random()+g*0 limit 1) as report
         '{}'::hstore as attrs
-    FROM generate_series(1,100) as g);
+    from generate_series(1,100) as g);
 
 -- we need to correlate the sub-select with the outer query or postgres will only evaluate it once
-UPDATE reports SET attrs = 
+update reports set attrs = 
   attrs || ('location' => (select * from countries order by random(), reports limit 1)) ;
 
-UPDATE mission_reports SET attrs =
+update mission_reports set attrs =
     attrs || 'witnessed' => (round(random())::int::boolean) ;
 
-UPDATE mission_reports SET attrs =
-    attrs || 'injury' => (ARRAY['mild', 'moderate', 'severe', 'lethal'])[random() * 4 + 1];
+update mission_reports set attrs =
+    attrs || 'injury' => (array['mild', 'moderate', 'severe', 'lethal'])[random() * 4 + 1];
 
-COPY expensive_items (item) FROM stdin;
+copy expensive_items (item) from stdin;
 dark black turtleneck
 slightly darker black turtleneck
 crisis vest
@@ -140,22 +141,22 @@ sunglasses
 plane tickets
 night-vision goggles
 grappling hook
-AK-47
-Walther PPK
+ak-47
+walther ppk
 ammunition
 grenades
 sleeping gas
 silver platter
 \.
 
-INSERT INTO agent_statuses(agent_uuid, state, time)
-  (SELECT
-    (SELECT uuid FROM agents ORDER BY random()+g*0 LIMIT 1) as agent_uuid,
-    (ARRAY['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
+insert into agent_statuses(agent_uuid, state, time)
+  (select
+    (select uuid from agents order by random()+g*0 limit 1) as agent_uuid,
+    (array['training','idle','assigned','captured','recovering'])[random() * 4 + 1] as state,
     now() - '1 year ago'::interval * random() as time
-  FROM generate_series(1, 1000) as g);
+  from generate_series(1, 1000) as g);
 
-COPY gear_names (name) FROM stdin;
+copy gear_names (name) from stdin;
 cloning machine
 spy car
 body armor
@@ -164,45 +165,46 @@ reentry capsule
 laser watch
 \.
 
-ALTER TABLE secret_missions
-    ADD CONSTRAINT fk_secret_mission_agent
-    FOREIGN KEY (agent_uuid) REFERENCES agents(uuid);
+alter table secret_missions
+    add constraint fk_secret_mission_agent
+    foreign key (agent_uuid) references agents(uuid);
     
-ALTER TABLE secret_missions
-    ADD CONSTRAINT fk_secret_mission_location
-    FOREIGN KEY (location) REFERENCES countries(name);
+alter table secret_missions
+    add constraint fk_secret_mission_location
+    foreign key (location) references countries(name);
     
-ALTER TABLE secret_missions
-    ADD CONSTRAINT cnt_solo_agent
-    EXCLUDE USING gist (location WITH =, mission_timeline WITH &&);
+alter table secret_missions
+    add constraint cnt_solo_agent
+    exclude using gist (location with =, mission_timeline with &&);
     
-COMMENT ON CONSTRAINT cnt_solo_agent ON secret_missions
+comment on constraint cnt_solo_agent on secret_missions
     IS 'Only one agent must be allowed to operate in any one country at any one time.';
 
-CREATE TABLE points AS (
-  WITH clusters AS (
-    SELECT 
-      random() * 1000 AS x,
-      random() * 1000 AS y, 
-      (random() * 5000)::int + 100 AS count, 
-      random() * 100 + 10 AS sigma 
-    FROM 
+create table points as (
+  with clusters as (
+    select 
+      random() * 1000 as x,
+      random() * 1000 as y, 
+      (random() * 5000)::int + 100 as count, 
+      random() * 100 + 10 as sigma 
+    from 
       generate_series(1,100)
   ) 
-  SELECT 
-    x + sin(a) * b AS x, 
-    y + cos(a) * b AS y 
-  FROM 
+  select 
+    x + sin(a) * b as x, 
+    y + cos(a) * b as y 
+  from 
   (
-    SELECT 
-      generate_series(1, c.count) AS index, 
+    select 
+      generate_series(1, c.count) as index, 
       c.x, 
       c.y, 
       2 * pi() * random() as a, 
       c.sigma * sqrt(-2 * ln(random())) as b 
-    FROM clusters c
+    from clusters c
   ) t
 );
 
-CREATE INDEX reports_attrs_idx ON reports USING gin (attrs);
-CREATE INDEX reports_report_idx ON reports USING gin (report_tsv);
+create index reports_attrs_idx on reports using gin (attrs);
+create index reports_report_idx on reports using gin (report_tsv);
+
